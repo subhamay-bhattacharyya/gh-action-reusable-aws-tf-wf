@@ -129,6 +129,10 @@ jobs:
             echo "drift-detected='false'" >> $GITHUB_OUTPUT
           fi
 
+      - name: Print Drift Detected
+        run: |
+          echo "Drift Detected: ${{ steps.drift-check.outputs.drift-detected }}"
+
       - name: Create an issue if drift detected
         id: create-issue
         if: ${{ steps.drift-check.outputs.drift-detected }} == 'true'
