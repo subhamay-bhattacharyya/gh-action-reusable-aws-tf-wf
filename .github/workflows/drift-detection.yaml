@@ -160,7 +160,7 @@ jobs:
         run: |
           issue_number=$(gh issue list --state open --search "Terraform Drift Detected" --json number --jq '.[0].number')
           drift_details=$(cat ${{ github.workspace }}/tf/drift-detail.json)
-          gh issue comment $issue_number --body "```json \n $drift_details \n```"
+          gh issue comment "$issue_number" --body "```json\n$drift_details\n```"
         env:
           GITHUB_TOKEN: ${{ secrets.git-token }}
 
