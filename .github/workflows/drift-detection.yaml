@@ -25,15 +25,19 @@ on:
         description: 'Specifies the AWS S3 bucket name.'
         required: true
         type: string
+    outputs:
+      drift-check: 
+        description: "Check for drift in the Terraform-managed infrastructure."
+        value: ${{ jobs.plan.outputs.drift-detected }}
     secrets:
       git-token:
         required: true
         description: 'Specifies the GitHub Token for the repository.'
 
 permissions:
-  id-token: write # This is required for aws oidc connection
-  contents: read # This is required for actions/checkout
-  pull-requests: write # This is required for gh bot to comment PR
+  id-token: write                       # This is required for aws oidc connection
+  contents: read                        # This is required for actions/checkout
+  pull-requests: write                  # This is required for gh bot to comment PR
 
 jobs:
   plan:
