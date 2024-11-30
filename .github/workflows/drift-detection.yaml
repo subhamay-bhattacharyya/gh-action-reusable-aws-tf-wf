@@ -159,23 +159,11 @@ jobs:
         if: env.drift-detected == 'true'
         run: |
           issue_number=$(gh issue list --state open --search "Terraform Drift Detected" --json number --jq '.[0].number')
-          # drift_details=$(cat ${{ github.workspace }}/tf/drift-detail.json)
+          drift_details=$(cat ${{ github.workspace }}/tf/drift-detail.json)
           # gh issue comment "$issue_number" --body "```json\n$drift_details\n```"
+          formatted_drift_details=$(jq . <<< "$drift_details")
+          gh issue comment $issue_number --body "\`\`\`json\n$formatted_drift_details\n\`\`\`"
 
-          echo "Issue Number: $issue_number"
-          cat ${{ github.workspace }}/tf/drift-detail.json| jq -c '.[]' | while read -r item; do
-            before=$(echo "$item" | jq -r '.before')
-            after=$(echo "$item" | jq -r '.after')
-            echo "+------  before ------+"
-            formatted_drift_details=$(jq . <<< "$before")
-            gh issue comment $issue_number --body "\`\`\`json\n$formatted_drift_details\n\`\`\`"
-            # echo "$before"
-            echo "+------  after ------+"
-            formatted_drift_details=$(jq . <<< "$after")
-            gh issue comment $issue_number --body "\`\`\`json\n$formatted_drift_details\n\`\`\`"
-            echo "$after"
-            echo "==========================================="
-          done
         env:
           GITHUB_TOKEN: ${{ secrets.git-token }}
 
