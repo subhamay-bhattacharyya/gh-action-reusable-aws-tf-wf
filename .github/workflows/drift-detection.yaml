@@ -101,9 +101,9 @@ jobs:
           terraform fmt -recursive
           terraform init -backend-config="bucket=${{ inputs.aws-tf-state-bucket-name }}" -backend-config="key=${{ github.event.repository.name }}/terraform.tfstate" -backend-config="region=${{ inputs.aws-region }}"
 
-      - name: Install jq
-        id: install-jq
-        run: sudo apt-get install -y jq
+      # - name: Install jq
+      #   id: install-jq
+      #   run: sudo apt-get install -y jq
 
       - name: Check for Drift
         id: drift-check
@@ -118,11 +118,8 @@ jobs:
             | {address: .address, actions: .change.actions}
           ' tfplan.json > changes.json
 
-          echo "=========================================== file list =================================================="
-          ls -alrt
-          echo "========================================================================================================"
           echo "=========================================== changes.json ==============================================="
-          cat changes.json
+          cat changes.json|wc -1
           echo "=========================================== changes.json ==============================================="
 
           if [ -s changes.json ]; then
