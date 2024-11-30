@@ -25,10 +25,10 @@ on:
         description: 'Specifies the AWS S3 bucket name.'
         required: true
         type: string
-    outputs:
-      drift-check: 
-        description: "Check for drift in the Terraform-managed infrastructure."
-        value: ${{ jobs.plan.outputs.drift-detected }}
+    # outputs:
+    #   drift-check: 
+    #     description: "Check for drift in the Terraform-managed infrastructure."
+    #     value: ${{ jobs.plan.outputs.drift-detected }}
     secrets:
       git-token:
         required: true
@@ -44,12 +44,15 @@ jobs:
     name: "Drift Detection (${{ inputs.github-env }})"
     runs-on: ubuntu-latest
     environment: ${{ inputs.github-env }}
-    outputs:
-      drift-detected: ${{ steps.drift-check.outputs.drift-detected }}
+    # outputs:
+    #   drift-detected: ${{ steps.drift-check.outputs.drift-detected }}
     defaults:
       run:
         shell: bash
         working-directory: .
+    env:
+      TERRAFORM_VERSION: 1.0.0 # Define the Terraform version here
+
     steps:
 
       - name: Git checkout
@@ -81,7 +84,7 @@ jobs:
         id: plugin
         uses: subhamay-bhattacharyya/terraform-plugin@main
         with:
-          tf-version: ${{ vars.TERRAFORM_VERSION }}
+          tf-version: ${{ env.TERRAFORM_VERSION }}
           caching: 'true'
 
       - name: Output Cache used
@@ -120,7 +123,7 @@ jobs:
 
           if [ -s changes.json ]; then
             echo "********Drift detected**********"
-            echo "drift-detected='true'" >> $GITHUB_OUTPUT
+            echo "drift-detected=true" >> $GITHUB_ENV
             jq '
             .resource_changes[]
             | select(.change.actions | index("update") or index("delete"))
@@ -130,16 +133,16 @@ jobs:
             cat drift-detail.json
             echo "=========================================== drift-detail.json ==============================================="
           else
-            echo "drift-detected='false'" >> $GITHUB_OUTPUT
+            echo "drift-detected=false" >> $GITHUB_ENV
           fi
 
       - name: Print Drift Detected
         run: |
-          echo "Drift Detected: ${{ steps.drift-check.outputs.drift-detected }}"
+          echo "Drift Detected: ${{ env.drift-detected }}"
 
       - name: Create an issue if drift detected
         id: create-issue
-        if: ${{ steps.drift-check.outputs.drift-detected == 'true' }}
+        if: env.drift-detected == 'true'
         run: |
           drift_details=$(cat ${{ github.workspace }}/tf/drift-detail.json)
           issue_body="Drift has been detected in the Terraform-managed infrastructure. Please review the plan output and take necessary actions.\n\nDrift Details:\n\`\`\`json\n$drift_details\n\`\`\`"
@@ -149,7 +152,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.git-token }}
 
       - name: Update the issue with drift details
-        if: ${{ steps.drift-check.outputs.drift-detected == 'true' }}
+        if: env.drift-detected == 'true'
         run: |
           issue_number=$(gh issue list --state open --search "Terraform Drift Detected" --json number --jq '.[0].number')
           drift_details=$(cat ${{ github.workspace }}/tf/drift-detail.json)
