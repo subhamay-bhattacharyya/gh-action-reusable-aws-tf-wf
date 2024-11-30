@@ -128,11 +128,11 @@ jobs:
           if [ -s changes.json ]; then
             echo "********Drift detected**********"
             echo "drift-detected=true" >> $GITHUB_ENV
-            jq '
+            jq '[
             .resource_changes[]
             | select(.change.actions | index("update") or index("delete"))
             | {address: .address, actions: .change.actions, before: .change.before, after: .change.after}
-            ' tfplan.json > drift-detail.json
+            ]' tfplan.json > drift-detail.json
             echo "=========================================== drift-detail.json ==============================================="
             cat drift-detail.json
             echo "=========================================== drift-detail.json ==============================================="
