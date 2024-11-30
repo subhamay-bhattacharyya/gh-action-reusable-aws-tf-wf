@@ -167,8 +167,12 @@ jobs:
             before=$(echo "$item" | jq -r '.before')
             after=$(echo "$item" | jq -r '.after')
             echo "+------  before ------+"
-            echo "$before"
+            formatted_drift_details=$(jq . <<< "$before")
+            gh issue comment $issue_number --body "```json\n$formatted_drift_details\n```"
+            # echo "$before"
             echo "+------  after ------+"
+            formatted_drift_details=$(jq . <<< "$after")
+            gh issue comment $issue_number --body "```json\n$formatted_drift_details\n```"
             echo "$after"
             echo "==========================================="
           done
