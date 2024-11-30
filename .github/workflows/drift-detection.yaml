@@ -145,7 +145,7 @@ jobs:
         if: env.drift-detected == 'true'
         run: |
           drift_details=$(cat ${{ github.workspace }}/tf/drift-detail.json)
-          issue_body="Drift has been detected in the Terraform-managed infrastructure. Please review the plan output and take necessary actions.\n\nDrift Details:\n\`\`\`json\n$drift_details\n\`\`\`"
+          issue_body="Drift has been detected in the Terraform-managed infrastructure. Please review the plan output and take necessary actions."
           echo "$issue_body" > issue_body.txt
           gh issue create --title "Terraform Drift Detected" --body "$issue_body"
         env:
@@ -156,10 +156,7 @@ jobs:
         run: |
           issue_number=$(gh issue list --state open --search "Terraform Drift Detected" --json number --jq '.[0].number')
           drift_details=$(cat ${{ github.workspace }}/tf/drift-detail.json)
-          gh issue comment $issue_number --body "Updated Drift Details: 
-          ```json
-          $drift_details
-          ```"
+          gh issue comment $issue_number --body "```json $drift_details```"
         env:
           GITHUB_TOKEN: ${{ secrets.git-token }}
 
