@@ -101,6 +101,10 @@ jobs:
           terraform fmt -recursive
           terraform init -backend-config="bucket=${{ inputs.aws-tf-state-bucket-name }}" -backend-config="key=${{ github.event.repository.name }}/terraform.tfstate" -backend-config="region=${{ inputs.aws-region }}"
 
+      - name: Install jq
+        id: install-jq
+        run: sudo apt-get install -y jq
+
       - name: Check for Drift
         id: drift-check
         run: |
