@@ -1,0 +1,165 @@
+name: Terraform Plan
+
+on:
+  workflow_call:
+    inputs:
+      github-env:
+        description: 'Specifies the GitHub deployment environment.'
+        required: false
+        type: string
+        default: "devl"
+      tfvar-file:
+        description: 'Specifies the environment specific tfvar file e.g: devl.terraform.tfvars'
+        required: true
+        type: string
+        default: devl.terraform.tfvars
+      aws-region:
+        description: 'Specifies the AWS Region.'
+        required: true
+        type: string
+      aws-role-arn:
+        description: 'Specifies the AWS IAM Role arn.'
+        required: true
+        type: string
+      aws-tf-state-bucket-name:
+        description: 'Specifies the AWS S3 bucket name.'
+        required: true
+        type: string
+    secrets:
+      git-token:
+        required: true
+        description: 'Specifies the GitHub Token for the repository.'
+
+permissions:
+  id-token: write # This is required for aws oidc connection
+  contents: read # This is required for actions/checkout
+  pull-requests: write # This is required for gh bot to comment PR
+
+jobs:
+  plan:
+    name: "Drift Detection (${{ inputs.github-env }})"
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.github-env }}
+    outputs:
+      drift-detected: ${{ steps.drift-check.outputs.drift-detected }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: .
+    steps:
+
+      - name: Git checkout
+        id: git-checkout
+        uses: actions/checkout@v4
+
+      - name: Add GitHub attributes to terraform.tfvars file
+        id: add-github-attributes
+        run: |
+          cd tf
+          mv params/${{ inputs.tfvar-file }} terraform.tfvars
+          echo -e '######################################## GitHub Context Variables  #################################'>> terraform.tfvars
+          echo -e 'github-url           = "${{ github.repositoryUrl }}"'                                                >> terraform.tfvars
+          echo -e 'github-ref           = "${{ github.ref }}"'                                                          >> terraform.tfvars
+          echo -e 'github-sha           = "${{ github.sha }}"'                                                          >> terraform.tfvars
+          echo -e 'github-repo          = "${{ github.event.repository.name }}"'                                        >> terraform.tfvars
+          echo "=========================================== terraform.tfvars ==========================================="
+          cat terraform.tfvars
+
+      - name: Configure AWS credentials from AWS account
+        id: aws-config
+        uses: aws-actions/configure-aws-credentials@v4.0.2
+        with:
+          role-to-assume: ${{ inputs.aws-role-arn }}
+          aws-region: ${{ inputs.aws-region }}
+          role-session-name: github-aws-terraform-oidc
+
+      - name: Configure and cache Terraform plugin
+        id: plugin
+        uses: subhamay-bhattacharyya/terraform-plugin@main
+        with:
+          tf-version: ${{ vars.TERRAFORM_VERSION }}
+          caching: 'true'
+
+      - name: Output Cache used
+        id: cache-used
+        run: echo "Cache used? ${{ steps.plugin.outputs.used-cache }}"
+
+      - name: Terraform Init
+        id: init
+        env:
+          AWS_BUCKET_NAME: ${{ inputs.aws-tf-state-bucket-name }}
+          AWS_BUCKET_KEY_NAME: ${{ github.event.repository.name }}
+        run: |
+          cd ${{ github.workspace }}/tf
+          terraform fmt -recursive
+          terraform init -backend-config="bucket=${{ inputs.aws-tf-state-bucket-name }}" -backend-config="key=${{ github.event.repository.name }}/terraform.tfstate" -backend-config="region=${{ inputs.aws-region }}"
+
+      - name: Check for Drift
+        id: drift-check
+        run: |
+          cd ${{ github.workspace }}/tf
+          terraform plan -out=tfplan.binary
+          terraform show -json tfplan.binary > tfplan.json
+
+          jq '
+            .resource_changes[]
+            | select(.change.actions | index("update") or index("delete"))
+            | {address: .address, actions: .change.actions}
+          ' tfplan.json > changes.json
+
+          echo "=========================================== file list =================================================="
+          ls -alrt
+          echo "========================================================================================================"
+          echo "=========================================== changes.json ==============================================="
+          cat changes.json
+          echo "=========================================== changes.json ==============================================="
+
+          if [ -s changes.json ]; then
+            echo "********Drift detected**********"
+            echo "drift-detected='true'" >> $GITHUB_OUTPUT
+            jq '
+            .resource_changes[]
+            | select(.change.actions | index("update") or index("delete"))
+            | {address: .address, actions: .change.actions, before: .change.before, after: .change.after}
+            ' tfplan.json > drift-detail.json
+            echo "=========================================== drift-detail.json ==============================================="
+            cat drift-detail.json
+            echo "=========================================== drift-detail.json ==============================================="
+          else
+            echo "drift-detected='false'" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create an issue if drift detected
+        id: create-issue
+        if: ${{ steps.drift-check.outputs.drift-detected }} == 'true'
+        run: |
+          drift_details=$(cat ${{ github.workspace }}/tf/drift-detail.json)
+          issue_body="Drift has been detected in the Terraform-managed infrastructure. Please review the plan output and take necessary actions.\n\nDrift Details:\n\`\`\`json\n$drift_details\n\`\`\`"
+          echo "$issue_body" > issue_body.txt
+          gh issue create --title "Terraform Drift Detected" --body "$issue_body"
+        env:
+          GITHUB_TOKEN: ${{ secrets.git-token }}
+
+      - name: Update the issue with drift details
+        if: ${{ steps.drift-check.outputs.drift-detected }} == 'true'
+        run: |
+          issue_number=$(gh issue list --state open --search "Terraform Drift Detected" --json number --jq '.[0].number')
+          drift_details=$(cat ${{ github.workspace }}/tf/drift-detail.json)
+          gh issue comment $issue_number --body "Updated Drift Details: 
+          ```json
+          $drift_details
+          ```"
+        env:
+          GITHUB_TOKEN: ${{ secrets.git-token }}
+
+      # - name: Create an issue if drift detected
+      #   id: create-issue
+      #   if: ${{ steps.drift-check.outputs.drift-detected }} == 'true'
+      #   uses: octokit/request-action@v2.4.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.git-token }}
+      #   with:
+      #     route: POST /repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/issues
+      #     title: "Terraform Drift Detected"
+      #     body: |
+      #       Drift has been detected in the Terraform-managed infrastructure. Please review the plan output and take necessary actions.

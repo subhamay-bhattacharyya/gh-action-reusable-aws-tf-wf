@@ -1,0 +1,20 @@
+{
+  "aws-account-id": "xxxx-xxxx-2513",
+  "aws-environment": "devl",
+  "aws-region": "us-east-1",
+  "bucket-arn": "arn:aws:s3:::tf-template-sample-bucket-devl-us-east-1-ajshd",
+  "bucket-domain-name": "tf-template-sample-bucket-devl-us-east-1-ajshd.s3.amazonaws.com",
+  "bucket-id": "tf-template-sample-bucket-devl-us-east-1-ajshd",
+  "bucket-region": "us-east-1",
+  "bucket-tags": {
+    "Environment": "devl",
+    "GitHubRef": "refs/heads/main",
+    "GitHubRepository": "repo",
+    "GitHubSHA": "abcdef",
+    "GitHubURL": "https://git-url",
+    "GitHubWFRunNum": "0",
+    "ProjectName": "tf-template",
+    "key1": "value1",
+    "key2": "value2"
+  }
+}
