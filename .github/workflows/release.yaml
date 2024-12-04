@@ -43,10 +43,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           tag_name: "Rel.${{ steps.prepare-release.outputs.release }}"
-          release_name: Release v${{ github.sha }}-${date '+%Y-%m-%d %H:%M:%S'}
+          release_name: "Release ${{ steps.prepare-release.outputs.release }}"
           body: |
             Changes in this Release
               - Commit Message: ${{ github.event.head_commit.message }}
-              - PR Comment: ${{ github.event.comment.body }}
           draft: false
           prerelease: false
