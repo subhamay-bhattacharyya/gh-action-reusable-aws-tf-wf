@@ -9,13 +9,11 @@ on:
         type: string
         default: v0.52.0
 permissions:
-  id-token: write                       # This is required for aws oidc connection
   contents: read                        # This is required for actions/checkout
-  pull-requests: write                  # This is required for gh bot to comment PR
 
 jobs:
-  tf-lint:
-    name: Run TFLint
+  checov-scan:
+    name: Run Checkov Scan
     runs-on: ubuntu-latest
     defaults:
       run:
