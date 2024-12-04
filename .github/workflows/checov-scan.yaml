@@ -3,11 +3,11 @@ name: Run Checov Scan
 on:
   workflow_call:
     inputs:
-      tflint-ver:
-        description: 'Specifies version of TFLint to use. e.g: v0.52.0'
+      soft-fail:
+        description: 'Specifies whether to return an error code if there are failed checks.'
         required: false
-        type: string
-        default: v0.52.0
+        type: boolean
+        default: true
 permissions:
   contents: read                        # This is required for actions/checkout
 
@@ -30,7 +30,7 @@ jobs:
         uses: bridgecrewio/checkov-action@master
         with:
           directory: ${{ github.workspace }}/tf
-          soft_fail: true # optional: do not return an error code if there are failed checks
+          soft_fail: ${{ inputs.soft-fail }} # optional: do not return an error code if there are failed checks
           # check: CKV_AWS_1 # optional: run only a specific check_id. can be comma separated list
           # skip_check: CKV_AWS_2 # optional: skip a specific check_id. can be comma separated list
           # quiet: true # optional: display only failed checks
