@@ -10,8 +10,6 @@ permissions:
 jobs:
   release:
     name: Create Release
-    outputs:
-      release-notes: ${{ steps.change-text.outputs.release-notes }}
     runs-on: ubuntu-latest
     defaults:
       run:
