@@ -24,11 +24,10 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Print github.ref_name
+      - name: Prepare Release
         run: |
-          echo "GITHUB_SHA=${{ github.sha }}" >> $GITHUB_ENV
-          echo "UUID=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
-          echo "UUID : {UUID}"
+          echo "REL=`date +%Y%m%d.%H%M%S`" >> $GITHUB_ENV
+          echo "REL : ${REL}"
 
       - name: Create Release
         id: create-release
@@ -36,10 +35,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          tag_name: Release-${UUID}
+          tag_name: Rel:${REL}
           release_name: Release v${{ github.sha }}-${date '+%Y-%m-%d %H:%M:%S'}
           body: |
             Changes in this Release
-              - ${{ github.event.comment.body }}
+              - Commit Message: ${{ github.event.head_commit.message }}
+              - PR Comment: ${{ github.event.comment.body }}
           draft: false
           prerelease: false
