@@ -16,10 +16,7 @@ permissions:
 jobs:
   tf-lint:
     name: Run TFLint
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash

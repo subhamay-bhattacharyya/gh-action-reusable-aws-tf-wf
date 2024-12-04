@@ -54,8 +54,6 @@ jobs:
       - _1-setup
     if: startsWith(github.ref, 'refs/heads/feature')
     uses: ./.github/workflows/checov-scan.yaml
-    # with:
-    #   issue-number: ${{ needs._1-setup.outputs.issue-number }}
   _2-2-tf-plan-devl:
     if: github.ref == 'refs/heads/main'
     needs:
