@@ -118,9 +118,9 @@ jobs:
 
       - name: Terraform Init
         id: init
-        env:
-          AWS_BUCKET_NAME: ${{ inputs.aws-tf-state-bucket-name }}
-          AWS_BUCKET_KEY_NAME: ${{ github.event.repository.name }}
+        # env:
+        #   AWS_BUCKET_NAME: ${{ inputs.aws-tf-state-bucket-name }}
+        #   AWS_BUCKET_KEY_NAME: ${{ github.event.repository.name }}
         run: |
           cd ${{ github.workspace }}/tf
           terraform fmt

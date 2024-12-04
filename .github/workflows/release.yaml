@@ -2,6 +2,11 @@ name: Create Release
 
 on:
   workflow_call:
+    outputs:
+      issue-number:
+        description: "Release number associated with the feature branch"
+        value: ${{ jobs.release.outputs.release }}
+
 permissions:
   id-token: write                       # This is required for aws oidc connection
   pull-requests: write                  # This is required for gh bot to comment PR
@@ -10,6 +15,8 @@ permissions:
 jobs:
   release:
     name: Create Release
+    outputs:
+      release: ${{ steps.prepare-release.outputs.release }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -25,9 +32,9 @@ jobs:
           node-version: '20'
 
       - name: Prepare Release
+        id: prepare-release
         run: |
-          echo "REL=`date +%Y%m%d.%H%M%S`" >> $GITHUB_ENV
-          echo "REL : ${REL}"
+          echo "release=`date +%Y%m%d.%H%M%S`" >> $GITHUB_OUTPUT
 
       - name: Create Release
         id: create-release
@@ -35,7 +42,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          tag_name: Rel:${REL}
+          tag_name: "Rel.${{ steps.prepare-release.outputs.release }}"
           release_name: Release v${{ github.sha }}-${date '+%Y-%m-%d %H:%M:%S'}
           body: |
             Changes in this Release
